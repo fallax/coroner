@@ -1,10 +1,12 @@
 {
   "name": "coroner",
   "version": "1.0.0",
+  "type": "commonjs",
+  "exports": "./index.js",
   "description": "more useful dead link detection",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node node_modules/jest/bin/jest.js"
   },
   "repository": {
     "type": "git",
@@ -15,5 +17,17 @@
   "bugs": {
     "url": "https://github.com/fallax/coroner/issues"
   },
-  "homepage": "https://github.com/fallax/coroner#readme"
+  "homepage": "https://github.com/fallax/coroner#readme",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "transform": {}
+  },
+  "bin": {
+    "coroner": "cli.js"
+  },
+  "dependencies": {
+    "yargs": "13.2"
+  }
 }
