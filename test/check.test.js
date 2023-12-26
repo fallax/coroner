@@ -1,3 +1,4 @@
+const { exit } = require('yargs');
 const check = require('../index.js');
 
 const urls = [
@@ -58,9 +59,21 @@ test('alive URL works correctly', async () => {
   );
 });
 
+test('redirect URL works correctly', async () => {
+  await expect(check("https://www.daringfireball.net")).resolves.toMatchObject(
+    { url: "https://www.daringfireball.net", "alive": true }
+  );
+});
+
 test('error URL works correctly', async () => {
   await expect(check("https://daringfireball.net/error/errors")).resolves.toMatchObject(
     { "url": "https://daringfireball.net/error/errors", "alive": false, "reason": "Bad HTTP status: 404" }
+  );
+});
+
+test('timeout URL works correctly', async () => {
+  await expect(check("https://gov.wales/sites/default/files/publications/2021-01/atisn14702doc5.pdf")).resolves.toMatchObject(
+    { url: "https://gov.wales/sites/default/files/publications/2021-01/atisn14702doc5.pdf", "alive": false }
   );
 });
 
