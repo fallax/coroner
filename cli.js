@@ -3,7 +3,7 @@ const check = require('./index.js');
 
 let data = "";
 
-const onlyFailures = false;
+const onlyFailures = true;
 
 async function main() {
 
@@ -12,6 +12,7 @@ async function main() {
     var result = check(process.argv.slice(2));
     result.then((a) => 
     {
+      // TODO: sorting by a sensible order maybe?
       console.log(a.filter(b => !onlyFailures || !b.alive));
     });
   }
@@ -23,6 +24,7 @@ async function main() {
     var result = check(data);
     result.then((a) => 
     {
+      // TODO: write to stdout
       console.log(a.filter(b => !onlyFailures || !b.alive));
     });
   }

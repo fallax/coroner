@@ -12,14 +12,24 @@ const socialmediaprefixes = [
 
 function GuessContentType(url)
 {
-    if (url.pathname.endsWith(".pdf"))
+    if (url.pathname.toLowerCase().endsWith(".pdf"))
     {
         return "application/pdf";
     }
 
+    if (url.pathname.toLowerCase().endsWith(".woff"))
+    {
+        return "font/woff";
+    }
+
+    if (url.pathname.toLowerCase().endsWith(".woff2"))
+    {
+        return "font/woff2";
+    }
+
     for (var prefix of socialmediaprefixes)
     {
-        if (url.hostname.startsWith(prefix)) return "text/html";
+        if (url.hostname.toLowerCase().startsWith(prefix)) return "text/html";
     }
 
     // TODO: more stuff
@@ -33,7 +43,8 @@ function GuessContentType(url)
 // 1: Webpage,
 // 2: PDF,
 // 3: Org,
-// 4: DOC
+// 4: DOC,
+// 5: Disregard - not important
 function GuessURLType(url)
 {
     const bookprefixes = [
@@ -51,6 +62,11 @@ function GuessURLType(url)
         return 2;
     }
 
+    if (url.includes(".ttf") || url.includes(".woff") )
+    {
+        return 5;
+    }
+
     // Guess that this is probably just a normal HTML page
     // TODO: we may want to actually try downloading at this point?
     return 1;
@@ -58,7 +74,7 @@ function GuessURLType(url)
 
 // Based on https://dmitripavlutin.com/timeout-fetch-request/
 async function fetchWithTimeout(resource, options = {}) {
-    const { timeout = 8000 } = options;
+    const { timeout = 18000 } = options;
     
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
@@ -81,34 +97,68 @@ async function checkURL(url, options) {
     // Do we have a valid URL?
     if (url.length == 0)
     {
-        return {"url": url, "guessedContentType": null, "alive": false, "reason": "Empty URL"};
+        returnValue.guessedContentType = null;
+        returnValue.alive = false;
+        returnValue.reason = "Empty URL";
+        return returnValue;
     }
-
-    const parsedURL = new URL(url);
-    console.log(parsedURL.hostname); // "www.example.com"
-    console.log(parsedURL.pathname); // "/cats"
+    else
+    {
+        try {
+            let ignoreme = new URL(url);
+        }
+        catch (error)
+        {
+            returnValue.alive = false;
+            returnValue.reason = error.message;
+            return returnValue;
+        }
+    }
 
     returnValue.guessedContentType = GuessContentType(new URL(url));
 
     try {
-        // Default options are marked with *
-        const response = await fetchWithTimeout(url, {
-            timeout: 3000,
-            method: "GET", // *GET, POST, PUT, DELETE, etc.
-            mode: "cors", // no-cors, *cors, same-origin
-            cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-            credentials: "same-origin", // include, *same-origin, omit
-            headers: {
-                "Accept": "*/*",
-                "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)"
-            },
-            redirect: "follow", // manual, *follow, error
-            referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-        });
 
+        // Default options are marked with *
+        const response = await fetch(url, {
+            timeout: 10000,
+            method: "GET", // *GET, POST, PUT, DELETE, etc.
+            mode: "no-cors", // no-cors, *cors, same-origin
+            cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+            // credentials: "same-origin", // include, *same-origin, omit
+            // headers: {
+            //     "Accept": "*/*",
+            //     "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)"
+            // },
+            redirect: "manual", // manual, *follow, error
+            // referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+        });
+    
         // status code
         switch (response.status)
         {
+            case 301:
+            case 302:
+                let originalURL = new URL(url);
+                let redirectURLString = response.headers.get("location");
+                if (redirectURLString[0] == "/")
+                {
+                    redirectURLString = originalURL.protocol + originalURL.hostname + redirectURLString;
+                }
+                let redirectURL = new URL(redirectURLString);
+
+                if (originalURL.pathname.length > 2)
+                {
+                    if (redirectURL.pathname.length < 2)
+                    {
+                        returnValue.alive = false;
+                        returnValue.reason = "Redirected to root page " + redirectURL;
+                        return returnValue;
+                    }
+                }
+                
+                return await checkURL(redirectURLString, options);              
+                
             case 200:
             case 304:
                 // Check this page isn't far too short
@@ -131,7 +181,7 @@ async function checkURL(url, options) {
                 switch (returnValue.guessedContentType)
                 {
                     case "text/html":
-                        if (!body.trim().toLowerCase().startsWith("<!doctype html")) {
+                        if (!body.trim().toLowerCase().startsWith("<!doctype") && !body.trim().toLowerCase().startsWith("<html")) {
                             returnValue.alive = false;
                             returnValue.reason = "Does not look like a valid HTML file: first characters are " + body.trim().slice(0, 25).toLowerCase();
                             return returnValue;
@@ -157,7 +207,7 @@ async function checkURL(url, options) {
         }
       } catch (error) {
         returnValue.alive = false;
-        returnValue.reason = "Connection error: " + ((error.cause) ? error.cause.code : error)
+        returnValue.reason = "Connection error: " + ((error.cause) ? error.cause.message : error)
         return returnValue;
       }
 }
@@ -168,13 +218,25 @@ async function check(input, options) {
         case "object":
             if (!input.length) { throw("Unexpected input")};
 
-            // TODO: split URLs up by host and run serially within a host 
+            // Remove any duplicates immediately
+            // TODO: Make sure that equivalent urls e.g. "url" and "url/" get treated the same?
+            let uniqueInputs = [];
+            input.forEach((element) => {
+                if (!uniqueInputs.includes(element)) {
+                    uniqueInputs.push(element);
+                }
+            });
 
-            var results = await Promise.all(input.map(item => checkURL(item, options)));
+            // TEMP: skip any twitter urls
+            uniqueInputs = uniqueInputs.filter(a => !a.startsWith("https://twitter"));
+
+            // TODO: split URLs up by host and run serially within a host 
+            var results = await Promise.all(uniqueInputs.map(item => checkURL(item, options)));
 
             return results;
             break;
         case "string":
+            
             return checkURL(input, options);
             break;
         default:

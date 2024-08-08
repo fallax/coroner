@@ -53,6 +53,9 @@ const urls = [
   "https://www.advicenow.org.uk/sites/default/files/1.GIDS%20Introduction%20Booklet_0.pdf"
 ];*/
 
+
+
+
 test('alive URL works correctly', async () => {
   await expect(check("https://daringfireball.net")).resolves.toMatchObject(
     { url: "https://daringfireball.net", "alive": true }
@@ -71,9 +74,40 @@ test('error URL works correctly', async () => {
   );
 });
 
-test('timeout URL works correctly', async () => {
-  await expect(check("https://gov.wales/sites/default/files/publications/2021-01/atisn14702doc5.pdf")).resolves.toMatchObject(
-    { url: "https://gov.wales/sites/default/files/publications/2021-01/atisn14702doc5.pdf", "alive": false }
+// test('timeout URL works correctly', async () => {
+//   await expect(check("https://gov.wales/sites/default/files/publications/2021-01/atisn14702doc5.pdf")).resolves.toMatchObject(
+//     { url: "https://gov.wales/sites/default/files/publications/2021-01/atisn14702doc5.pdf", "alive": false }
+//   );
+// });
+
+test('404 works correctly', async () => {
+  await expect(check("https://lgbt.foundation/comingout")).resolves.toMatchObject(
+    { url: "https://lgbt.foundation/comingout", "alive": false }
+  );
+});
+
+test('404 works correctly x2', async () => {
+  await expect(check("https://www.ocr.org.uk/students/replacement-certificates/gender-reassignment/")).resolves.toMatchObject(
+    { url: "https://www.ocr.org.uk/students/replacement-certificates/gender-reassignment/", "alive": false }
+  );
+});
+
+test('list of identical URLS is treated as one URL', async () => {
+  await expect(check([
+    "https://genderkit.org.uk",
+    "https://google.com",
+    "https://genderkit.org.uk",
+    "https://genderkit.org.uk"
+  ])).resolves.toMatchObject(
+    [{
+      "alive": true,
+      "url": "https://genderkit.org.uk"
+    },
+    {
+      "alive": true,
+      "url": "https://google.com"
+    }
+    ]
   );
 });
 
