@@ -10,6 +10,18 @@ const socialmediaprefixes = [
     "https://www.instagram.com"
 ];
 
+// Return a URL in a consistent format for comparing to other urls
+// NB: comparisons remain case-sensitive!
+function consistentURL(url)
+{                                                                                                                          
+    if (url[0] == "w") { url = "//" + url } // forwardslashes to ensure it grabs the schema                                 
+    var url = new URL(url,"http://www.example.com")
+    var host = url.host.replace("www.","")                                                                                  
+    var path = url.pathname                                                                                                 
+    if (path.length > 1 && path[path.length - 1] == "/") { path = path.slice(0, path.length - 1)}
+    return url.protocol + "//" + host + path + url.search;
+}                                                                                                                                                                
+
 function GuessContentType(url)
 {
     if (url.pathname.toLowerCase().endsWith(".pdf"))
