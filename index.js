@@ -39,6 +39,21 @@ function GuessContentType(url)
         return "font/woff2";
     }
 
+    if (url.pathname.toLowerCase().endsWith(".doc"))
+    {
+        return "application/msword";
+    }
+
+    if (url.pathname.toLowerCase().endsWith(".docx"))
+    {
+        return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    }
+
+    if (url.pathname.toLowerCase().endsWith(".odt"))
+    {
+        return "application/vnd.oasis.opendocument.text";
+    }
+
     for (var prefix of socialmediaprefixes)
     {
         if (url.hostname.toLowerCase().startsWith(prefix)) return "text/html";
