@@ -84,27 +84,13 @@ function GuessURLType(url)
     return 1;
 }
 
-// Based on https://dmitripavlutin.com/timeout-fetch-request/
-async function fetchWithTimeout(resource, options = {}) {
-    const { timeout = 18000 } = options;
-    
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-  
-    const response = await fetch(resource, {
-      ...options,
-      signal: controller.signal  
-    });
-    clearTimeout(id);
-  
-    return response;
-  }
-
-async function checkURL(url, options) {
+async function checkURL(url, options, originalURL) {
 
     var returnValue = {
-        "url": url
+        "url": originalURL ? originalURL : url
     };
+
+    if (originalURL) { returnValue.redirect = true; returnValue.redirectURL = url }
 
     // Do we have a valid URL?
     if (url.length == 0)
@@ -133,7 +119,7 @@ async function checkURL(url, options) {
 
         // Default options are marked with *
         const response = await fetch(url, {
-            timeout: 10000,
+            signal: AbortSignal.timeout(5000), // timeout after this number of milliseconds
             method: "GET", // *GET, POST, PUT, DELETE, etc.
             mode: "no-cors", // no-cors, *cors, same-origin
             cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
@@ -145,7 +131,7 @@ async function checkURL(url, options) {
             redirect: "manual", // manual, *follow, error
             // referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
         });
-    
+
         // status code
         switch (response.status)
         {
@@ -169,7 +155,7 @@ async function checkURL(url, options) {
                     }
                 }
                 
-                return await checkURL(redirectURLString, options);              
+                return await checkURL(redirectURLString, options, url);              
                 
             case 200:
             case 304:
@@ -248,7 +234,6 @@ async function check(input, options) {
             return results;
             break;
         case "string":
-            
             return checkURL(input, options);
             break;
         default:
