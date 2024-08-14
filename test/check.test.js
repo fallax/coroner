@@ -121,8 +121,9 @@ test('list of URLS works correctly', async () => {
       "url": "https://genderkit.org.uk",
     },
     {
-      "url": "https://walandablap.org.uk"
+      "url": "https://walandablap.org.uk",
+      "alive": true
     }
     ]
   );
-});
+}, 10000);
