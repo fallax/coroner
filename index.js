@@ -10,130 +10,111 @@ const socialmediaprefixes = [
     "https://www.instagram.com"
 ];
 
+const checkedMimeTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "text/html"
+]
+
 // Return a URL in a consistent format for comparing to other urls
 // NB: comparisons remain case-sensitive!
-function consistentURL(url)
-{                                                                                                                          
-    if (url[0] == "w") { url = "//" + url } // forwardslashes to ensure it grabs the schema                                 
-    var url = new URL(url,"http://www.example.com")
-    var host = url.host.replace("www.","")                                                                                  
-    var path = url.pathname                                                                                                 
-    if (path.length > 1 && path[path.length - 1] == "/") { path = path.slice(0, path.length - 1)}
-    return url.protocol + "//" + host + path + url.search;
-}                                                                                                                                                                
+function consistentURL(input) {
+    if (input.substring(0,4) != "http") { input = "//" + input } // forwardslashes to ensure it grabs the schema      
 
-function GuessContentType(url)
-{
-    if (url.pathname.toLowerCase().endsWith(".pdf"))
-    {
+    // try and make a new URL object
+    try {
+        var url = new URL(input, "http://www.example.com")
+        
+        // Construct a standardised URL
+        var host = url.host.replace("www.", "")
+        var path = url.pathname
+        if (path.length > 1 && path[path.length - 1] == "/") { path = path.slice(0, path.length - 1) }
+
+        return url.protocol + "//" + host + path + url.search;
+    }
+    catch (error) {
+        console.log(error)
+        console.log(input)
+        return null;
+    }    
+}
+
+function GuessContentType(url) {
+    if (url.pathname.toLowerCase().endsWith(".pdf")) {
         return "application/pdf";
-    }
-
-    if (url.pathname.toLowerCase().endsWith(".woff"))
-    {
-        return "font/woff";
-    }
-
-    if (url.pathname.toLowerCase().endsWith(".woff2"))
-    {
-        return "font/woff2";
-    }
-
-    if (url.pathname.toLowerCase().endsWith(".doc"))
-    {
+    } 
+    
+    if (url.pathname.toLowerCase().endsWith(".doc")) {
         return "application/msword";
     }
 
-    if (url.pathname.toLowerCase().endsWith(".docx"))
-    {
+    if (url.pathname.toLowerCase().endsWith(".docx")) {
         return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     }
 
-    if (url.pathname.toLowerCase().endsWith(".odt"))
-    {
+    if (url.pathname.toLowerCase().endsWith(".odt")) {
         return "application/vnd.oasis.opendocument.text";
     }
 
-    for (var prefix of socialmediaprefixes)
-    {
-        if (url.hostname.toLowerCase().startsWith(prefix)) return "text/html";
+    if (url.pathname.toLowerCase().endsWith(".js")) {
+        return "text/javascript";
     }
 
-    // TODO: more stuff
+    if (url.pathname.toLowerCase().endsWith(".woff")) {
+        return "font/woff";
+    }
+
+    if (url.pathname.toLowerCase().endsWith(".woff2")) {
+        return "font/woff2";
+    }
+
+    if (url.pathname.toLowerCase().endsWith(".css")) {
+        return "text/css";
+    }
+
+    for (var prefix of socialmediaprefixes) {
+        if (url.hostname.toLowerCase().startsWith(prefix)) return "text/html";
+    }
 
     return "text/html";
 }
 
-// Returns a guess at the type of resource that is available at this URL
-// Types:
-// 0: Book,
-// 1: Webpage,
-// 2: PDF,
-// 3: Org,
-// 4: DOC,
-// 5: Disregard - not important
-function GuessURLType(url)
-{
-    const bookprefixes = [
-        "https://books.google.com",
-        "https://uk.jkp.com"
-    ];
+async function checkURL(input, options, originalURL) {
 
-    for (var prefix of bookprefixes)
-    {
-        if (url.startsWith(prefix)) return 0;
-    }
-
-    if (url.includes(".pdf"))
-    {
-        return 2;
-    }
-
-    if (url.includes(".ttf") || url.includes(".woff") )
-    {
-        return 5;
-    }
-
-    // Guess that this is probably just a normal HTML page
-    // TODO: we may want to actually try downloading at this point?
-    return 1;
-}
-
-async function checkURL(url, options, originalURL) {
-
-    var returnValue = {
-        "url": originalURL ? originalURL : url
-    };
-
-    if (originalURL) { returnValue.redirect = true; returnValue.redirectURL = url }
+    var toCheck = input.redirectURL ? input.redirectURL : input.url
 
     // Do we have a valid URL?
-    if (url.length == 0)
-    {
-        returnValue.guessedContentType = null;
-        returnValue.alive = false;
-        returnValue.reason = "Empty URL";
-        return returnValue;
+    if (toCheck.length == 0) {
+        input.guessedContentType = null;
+        input.alive = false;
+        input.reason = "Empty URL";
+        return input;
     }
-    else
-    {
+    else {
         try {
-            let ignoreme = new URL(url);
+            let url = new URL(toCheck);
+            
+            // Skip checking this item if the mime type isn't something we check
+            input.guessedContentType = GuessContentType(url);
+            if (!checkedMimeTypes.includes(input.guessedContentType))
+            {
+                input.skipped = true
+                input.alive = true
+                return input
+            }
         }
-        catch (error)
-        {
-            returnValue.alive = false;
-            returnValue.reason = error.message;
-            return returnValue;
+        catch (error) {
+            input.alive = false;
+            input.reason = error.message;
+            return input;
         }
     }
-
-    returnValue.guessedContentType = GuessContentType(new URL(url));
 
     try {
 
         // Default options are marked with *
-        const response = await fetch(url, {
+        const response = await fetch(toCheck, {
             signal: AbortSignal.timeout(5000), // timeout after this number of milliseconds
             method: "GET", // *GET, POST, PUT, DELETE, etc.
             mode: "no-cors", // no-cors, *cors, same-origin
@@ -148,111 +129,107 @@ async function checkURL(url, options, originalURL) {
         });
 
         // status code
-        switch (response.status)
-        {
+        switch (response.status) {
             case 301:
             case 302:
-                let originalURL = new URL(url);
+                let originalURL = new URL(toCheck);
                 let redirectURLString = response.headers.get("location");
-                if (redirectURLString[0] == "/")
-                {
+                if (redirectURLString[0] == "/") {
                     redirectURLString = originalURL.protocol + originalURL.hostname + redirectURLString;
                 }
                 let redirectURL = new URL(redirectURLString);
 
-                if (originalURL.pathname.length > 2)
-                {
-                    if (redirectURL.pathname.length < 2)
-                    {
-                        returnValue.alive = false;
-                        returnValue.reason = "Redirected to root page " + redirectURL;
-                        return returnValue;
+                if (originalURL.pathname.length > 2) {
+                    if (redirectURL.pathname.length < 2) {
+                        input.alive = false;
+                        input.reason = "Redirected to root page " + redirectURL;
+                        return input;
                     }
                 }
-                
-                return await checkURL(redirectURLString, options, url);              
-                
+
+                return await checkURL({url: input.url, redirect: true, redirectURL: redirectURLString }, options, input.url);
+
             case 200:
             case 304:
                 // Check this page isn't far too short
                 if (response.headers["content-length"] < 500) {
-                    returnValue.alive = false;
-                    returnValue.reason = "Page improbably small: size was " + res.headers["content-length"];
+                    input.alive = false;
+                    input.reason = "Page improbably small: size was " + res.headers["content-length"];
                     return returnValue;
                 }
 
                 // Check content type is something expected
-                if (response.headers["Content-Type"] && (response.headers["Content-Type"] != returnValue.guessedContentType))
-                {
-                    returnValue.alive = false;
-                    returnValue.reason = "Page doesn't appear to have right type of content: " + response.headers["Content-Type"] + " vs " + returnValue.guessedContentType;
-                    return returnValue;
-                }                
+                if (response.headers["Content-Type"] && (response.headers["Content-Type"] != input.guessedContentType)) {
+                    input.alive = false;
+                    input.reason = "Page doesn't appear to have right type of content: " + response.headers["Content-Type"] + " vs " + input.guessedContentType;
+                    return input;
+                }
 
                 // Check the response body looks like a valid response for this presumed content type
                 var body = await response.text();
-                switch (returnValue.guessedContentType)
-                {
+                switch (input.guessedContentType) {
                     case "text/html":
                         if (!body.trim().toLowerCase().startsWith("<!doctype") && !body.trim().toLowerCase().startsWith("<html")) {
-                            returnValue.alive = false;
-                            returnValue.reason = "Does not look like a valid HTML file: first characters are " + body.trim().slice(0, 25).toLowerCase();
-                            return returnValue;
+                            input.alive = false;
+                            input.reason = "Does not look like a valid HTML file: first characters are " + body.trim().slice(0, 25).toLowerCase();
+                            return input;
                         }
                         break;
                     case "application/pdf":
                         if (!body.trim().toLowerCase().startsWith("%pdf-")) {
-                            returnValue.alive = false;
-                            returnValue.reason = "Does not look like a valid PDF file: first characters are " + body.trim().slice(0, 25).toLowerCase();
-                            return returnValue;
+                            input.alive = false;
+                            input.reason = "Does not look like a valid PDF file: first characters are " + body.trim().slice(0, 25).toLowerCase();
+                            return input;
                         }
                         break;
                 }
 
-                returnValue.alive = true;
-                return returnValue;
+                input.alive = true;
+                return input;
 
                 break;
             default:
-                returnValue.alive = false;
-                returnValue.reason = "Bad HTTP status: " + response.status;
-                return returnValue;
+                input.alive = false;
+                input.reason = "Bad HTTP status: " + response.status;
+                return input;
         }
-      } catch (error) {
-        returnValue.alive = false;
-        returnValue.reason = "Connection error: " + ((error.cause) ? error.cause.message : error)
-        return returnValue;
-      }
+    } catch (error) {
+        input.alive = false;
+        input.reason = "Connection error: " + ((error.cause) ? error.cause.message : error)
+        return input;
+    }
 }
 
 async function check(input, options) {
-    switch(typeof(input))
-    {
+    switch (typeof (input)) {
         case "object":
-            if (!input.length) { throw("Unexpected input")};
+            if (!input.length) { throw ("Unexpected input") };
+
+            // Create objects to represent all of our URLs
+            urls = input.map((element) => { return {"url": element, "consistentURL": consistentURL(element)}});
 
             // Remove any duplicates immediately
-            // TODO: Make sure that equivalent urls e.g. "url" and "url/" get treated the same?
-            let uniqueInputs = [];
-            input.forEach((element) => {
-                if (!uniqueInputs.includes(element)) {
-                    uniqueInputs.push(element);
+            let uniqueInputs = {};
+            urls.forEach((element) => {
+                if (!Object.keys(uniqueInputs).includes(element.consistentURL)) {
+                    uniqueInputs[element.consistentURL] = element;
                 }
             });
+            urls = Object.values(uniqueInputs);
 
             // TEMP: skip any twitter urls
-            uniqueInputs = uniqueInputs.filter(a => !a.startsWith("https://twitter"));
+            urls = urls.filter(a => !a.consistentURL.startsWith("https://twitter"));
 
             // TODO: split URLs up by host and run serially within a host 
-            var results = await Promise.all(uniqueInputs.map(item => checkURL(item, options)));
+            var results = await Promise.all(urls.map(item => checkURL(item, options)));
 
             return results;
             break;
         case "string":
-            return checkURL(input, options);
+            return checkURL({"url": input}, options);
             break;
         default:
-            throw("Unknown input type");
+            throw ("Unknown input type");
             return 1;
     }
 }

@@ -28,6 +28,6 @@
     "coroner": "cli.js"
   },
   "dependencies": {
-    "yargs": "13.2"
+    "argparse": "^2.0.1"
   }
 }

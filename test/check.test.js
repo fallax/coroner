@@ -54,25 +54,65 @@ const urls = [
 ];*/
 
 
+/// ************************
+/// Test main URL check code
+/// ************************
 
-
+// Test that a URL which is current alive is seen as alive
 test('alive URL works correctly', async () => {
   await expect(check("https://daringfireball.net")).resolves.toMatchObject(
-    { url: "https://daringfireball.net", "alive": true }
+    {
+      url: "https://daringfireball.net",
+      "alive": true,
+      "guessedContentType": "text/html"
+    }
   );
 });
 
+// Test that a URL which redirects to an alive URL is seen as alive
 test('redirect URL works correctly', async () => {
   await expect(check("https://www.daringfireball.net")).resolves.toMatchObject(
-    { url: "https://www.daringfireball.net", "alive": true }
+    {
+      url: "https://www.daringfireball.net",
+      "alive": true,
+      "redirect": true,
+      "redirectURL": "https://daringfireball.net/",
+      "guessedContentType": "text/html"
+    }
   );
 });
 
+// Test that a URL which is currently a 404 page is seen as dead
 test('error URL works correctly', async () => {
   await expect(check("https://daringfireball.net/error/errors")).resolves.toMatchObject(
-    { "url": "https://daringfireball.net/error/errors", "alive": false, "reason": "Bad HTTP status: 404" }
+    {
+      "url": "https://daringfireball.net/error/errors",
+      "alive": false,
+      "reason": "Bad HTTP status: 404",
+      "guessedContentType": "text/html"
+    }
   );
 });
+
+test('404 works correctly', async () => {
+  await expect(check("https://lgbt.foundation/comingout")).resolves.toMatchObject(
+    {
+      url: "https://lgbt.foundation/comingout",
+      "alive": false,
+      "guessedContentType": "text/html"
+    }
+  );
+}, 10000);
+
+test('404 works correctly x2', async () => {
+  await expect(check("https://www.ocr.org.uk/students/replacement-certificates/gender-reassignment/")).resolves.toMatchObject(
+    {
+      url: "https://www.ocr.org.uk/students/replacement-certificates/gender-reassignment/",
+      "alive": false,
+      "guessedContentType": "text/html"
+    }
+  );
+}, 10000);
 
 // test('timeout URL works correctly', async () => {
 //   await expect(check("https://gov.wales/sites/default/files/publications/2021-01/atisn14702doc5.pdf")).resolves.toMatchObject(
@@ -80,18 +120,24 @@ test('error URL works correctly', async () => {
 //   );
 // });
 
-test('404 works correctly', async () => {
-  await expect(check("https://lgbt.foundation/comingout")).resolves.toMatchObject(
-    { url: "https://lgbt.foundation/comingout", "alive": false }
+// Test that a list of URLs is processed (not just a single URL)
+test('list of URLS works correctly', async () => {
+  await expect(check(urls)).resolves.toMatchObject(
+    [{
+      "alive": true,
+      "url": "https://genderkit.org.uk",
+      "guessedContentType": "text/html"
+    },
+    {
+      "url": "https://walandablap.org.uk",
+      "alive": true,
+      "guessedContentType": "text/html"
+    }
+    ]
   );
 }, 10000);
 
-test('404 works correctly x2', async () => {
-  await expect(check("https://www.ocr.org.uk/students/replacement-certificates/gender-reassignment/")).resolves.toMatchObject(
-    { url: "https://www.ocr.org.uk/students/replacement-certificates/gender-reassignment/", "alive": false }
-  );
-}, 10000);
-
+// Test that multiple identical entries in a list return only one response
 test('list of identical URLS is treated as one URL', async () => {
   await expect(check([
     "https://genderkit.org.uk",
@@ -102,28 +148,113 @@ test('list of identical URLS is treated as one URL', async () => {
     [
       {
         "alive": true,
-        "url": "https://genderkit.org.uk"
+        "url": "https://genderkit.org.uk",
+        "guessedContentType": "text/html"
       },
       {
         "alive": true,
         "url": "https://google.com",
         "redirect": true,
-        "redirectURL": "https://www.google.com"
+        "redirectURL": "https://www.google.com/",
+        "guessedContentType": "text/html"
       }
     ]
   );
 });
 
-test('list of URLS works correctly', async () => {
-  await expect(check(urls)).resolves.toMatchObject(
-    [{
-      "alive": true,
-      "url": "https://genderkit.org.uk",
-    },
-    {
-      "url": "https://walandablap.org.uk",
-      "alive": true
-    }
+// Test that multiple entries in a list which are effectively equivalent return only one response
+test('list of equivalent URLS is treated as one URL', async () => {
+  await expect(check([
+    "https://genderkit.org.uk/",
+    "https://genderkit.org.uk"
+  ])).resolves.toMatchObject(
+    [
+      {
+        "alive": true,
+        "url": "https://genderkit.org.uk/",
+        "guessedContentType": "text/html"
+      }
     ]
   );
-}, 10000);
+});
+
+// TODO: should /index.html be treated the same as / ?
+
+// Test that URLs with guessed mimetypes that should not be checked are skipped
+test('ignored mimetypes are ignored', async () => {
+  await expect(check([
+    "https://test.com/js/test.js",
+    "https://google.com",
+    "https://test.com/css/test.css?query=true",
+    "https://genderkit.org.uk"
+  ])).resolves.toMatchObject(
+    [
+      {
+        "alive": true,
+        "skipped": true,
+        "url": "https://test.com/js/test.js",
+        "guessedContentType": "text/javascript"
+      },
+      {
+        "alive": true,
+        "url": "https://google.com",
+        "redirect": true,
+        "redirectURL": "https://www.google.com/",
+        "guessedContentType": "text/html"
+      },
+      {
+        "alive": true,
+        "skipped": true,
+        "url": "https://test.com/css/test.css?query=true",
+        "guessedContentType": "text/css"
+      },
+      {
+        "alive": true,
+        "url": "https://genderkit.org.uk",
+        "guessedContentType": "text/html"
+      }  
+    ]
+  );
+});
+
+// Test that different query strings are not treated as the same URL
+test('URLs with different query strings are treated as different', async () => {
+  await expect(check([
+    "https://genderkit.org.uk",
+    "https://genderkit.org.uk?query1",
+    "https://genderkit.org.uk?query2"
+  ])).resolves.toMatchObject(
+    [
+      {
+        "alive": true,
+        "url": "https://genderkit.org.uk",
+        "guessedContentType": "text/html"
+      },
+      {
+        "alive": true,
+        "url": "https://genderkit.org.uk?query1",
+        "guessedContentType": "text/html"
+      },
+      {
+        "alive": true,
+        "url": "https://genderkit.org.uk?query2",
+        "guessedContentType": "text/html"
+      },
+    ]
+  );
+});
+
+// Check that URL that is supposed to be a PDF is detected as being not a PDF
+test('PDF link is detected if not actually a pdf', async () => {
+  await expect(check([
+    "https://genderkit.org.uk/test.pdf"
+  ])).resolves.toMatchObject(
+    [
+      {
+        "alive": false,
+        "url": "https://genderkit.org.uk/test.pdf",
+        "guessedContentType": "application/pdf"
+      }
+    ]
+  );
+});
