@@ -16,7 +16,7 @@ async function main() {
       metavar: 'URLs', 
       type: 'str', 
       nargs: '*',
-      help: 'URL to check'
+      help: 'a list of URLs to check'
     }
   )
 
@@ -42,9 +42,10 @@ async function main() {
    else if (process.stdin)
   {
     for await (const chunk of process.stdin) data += chunk;
-    data = data.split("\r\n");
-    data = data.filter(a => a.length > 0);
-    var result = check({url: data});
+    data = data.split(/\r?\n/) // split lines apart
+    data = data.map(a => a.trim())
+    data = data.filter(a => a.length > 0)
+    var result = check(data);
     result.then((a) => 
     {
       // TODO: write to stdout

@@ -18,5 +18,20 @@ coroner is designed to handle:
 
 ## Usage
 
-- At the command prompt
-- As a library
+To check one or more links
+
+```
+node cli.js http://test1.com http://test2.com
+```
+
+To check all the links within file containing a list of links
+
+```
+cat links.txt | node cli.js
+```
+
+To check all the links within a saved HTML file and return a list of failing URLs only
+
+```
+sed -n 's/.*href="\(h[^"]*\).*/\1/p' webpage.html | node cli.js -f
+```
