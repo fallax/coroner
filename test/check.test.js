@@ -213,6 +213,18 @@ test('PDF link is detected if not actually a pdf', async () => {
   );
 });
 
+// Redirect to / is detected properly as a dead link
+
+// Redirect to same location as /verylongstring is detected as a dead link
+
 // Skip relative URLs (starting with /)
 
 // Skip urls on hosts in host blacklist (e.g. fonts.google.com)
+
+// Other HTTP codes cause link to be detected as dead
+// 403 'https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/974817/Gender_recognition_V8.pdf'
+
+// HTTP 308 redirects are handled correctly - need to work out what to do with this!
+// 308 'https://igpm.org.uk/wp-content/uploads/2022/03/Gender-Identity-Toolkit-for-General-Practice.pdf'
+
+// Pages that say 'Page not found', etc, but are served 200 are treated as dead
