@@ -29,13 +29,12 @@ async function main() {
   )
 
   var args = parser.parse_args();
-
+  
   if (args.urls.length > 0)
   {
     var result = check(args.urls);
     result.then((a) => 
     {
-      // TODO: sorting by a sensible order maybe?
       console.log(a.filter(b => !args.filter || !b.alive));
     });
   }

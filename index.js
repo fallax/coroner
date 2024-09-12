@@ -10,6 +10,10 @@ const socialmediaprefixes = [
     "https://www.instagram.com"
 ];
 
+const skippedHosts = [
+    "https://fonts.googleapis.com"
+]
+
 const checkedMimeTypes = [
     "application/pdf",
     "application/msword",
@@ -115,10 +119,10 @@ async function checkURL(input, options, originalURL) {
 
         // Default options are marked with *
         const response = await fetch(toCheck, {
-            signal: AbortSignal.timeout(5000), // timeout after this number of milliseconds
-            method: "GET", // *GET, POST, PUT, DELETE, etc.
+            signal: AbortSignal.timeout(options.timeout),
+            method: "GET", 
             mode: "no-cors", // no-cors, *cors, same-origin
-            cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+            cache: "reload", // Force the URL to be refetched fresh every time
             // credentials: "same-origin", // include, *same-origin, omit
             // headers: {
             //     "Accept": "*/*",
@@ -147,7 +151,7 @@ async function checkURL(input, options, originalURL) {
                     }
                 }
 
-                return await checkURL({url: input.url, redirect: true, redirectURL: redirectURLString }, options, input.url);
+                return await checkURL({url: input.url, consistentURL: input.consistentURL, redirect: true, redirectURL: redirectURLString }, options, input.url);
 
             case 200:
             case 304:
@@ -200,7 +204,33 @@ async function checkURL(input, options, originalURL) {
     }
 }
 
+async function checkBatch(urls, options)
+{
+    var output = []
+    var lastRequest = 0
+    for (url in urls)
+    {
+        if (Date.now() - lastRequest < options.cooldown)
+        {
+            let sleepTime = (lastRequest + options.cooldown) - Date.now()
+            await new Promise(resolve => setTimeout(resolve, sleepTime))
+        }
+
+        lastRequest = Date.now()
+        output.push(await checkURL(urls[url], options))
+    }
+    return output
+}
+
 async function check(input, options) {
+
+    if (!options) { options = 
+        {
+            timeout: 5000,
+            cooldown: 5000,
+        }
+    }
+
     switch (typeof (input)) {
         case "object":
             if (!input.length) { throw ("Unexpected input") };
@@ -220,13 +250,23 @@ async function check(input, options) {
             // TEMP: skip any twitter urls
             urls = urls.filter(a => !a.consistentURL.startsWith("https://twitter"));
 
-            // TODO: split URLs up by host and run serially within a host 
-            var results = await Promise.all(urls.map(item => checkURL(item, options)));
+            // TODO: split URLs up by host and run serially within a host
+            hosts = {}
+            urls.forEach((element) => {
+                let host = element.consistentURL ? (new URL(element.consistentURL)).host : "unknown"
+                if (!hosts[host]) { hosts[host] = []}
+                hosts[host].push(element)   
+            })
+            
+            var results = await Promise.all(Object.keys(hosts).map(host => checkBatch(hosts[host], options))) //await Promise.all(urls.map(item => checkURL(item, options)));
+
+            results = results.flat()
+            results.sort((a,b) => a.consistentURL == b.consistentURL ? 0 : a.consistentURL < b.consistentURL ? -1 : 1) // sort alphabetically
 
             return results;
             break;
         case "string":
-            return checkURL({"url": input}, options);
+            return check([input], options);
             break;
         default:
             throw ("Unknown input type");
