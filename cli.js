@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 const check = require('./index.js');
 const { ArgumentParser } = require('argparse');
+const cliProgress = require('cli-progress');
+const colors = require('ansi-colors');
 
 let data = "";
 
@@ -28,14 +30,24 @@ async function main() {
     }
   )
 
+  // create new progress bar
+  const b1 = new cliProgress.SingleBar({
+    format: '' + colors.cyan('{bar}') + '| {percentage}% || {value}/{total} checked',
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591',
+    hideCursor: true,
+    synchronousUpdate: true
+  });
+
   var args = parser.parse_args();
-  
+
   if (args.urls.length > 0)
   {
     var result = check(args.urls);
     result.then((a) => 
     {
-      console.log(a.filter(b => !args.filter || !b.alive));
+      process.stdout.write(JSON.stringify(a.filter(b => !args.filter || !b.alive)));
+      process.stdout.write("\n"); 
     });
   }
    else if (process.stdin)
@@ -44,12 +56,20 @@ async function main() {
     data = data.split(/\r?\n/) // split lines apart
     data = data.map(a => a.trim())
     data = data.filter(a => a.length > 0)
-    var result = check(data);
+
+    b1.start(data.length, 0, {
+      speed: "N/A"
+    });
+
+    var result = check(data, {progress: b1, timeout: 10000, cooldown: 10000});
     result.then((a) => 
     {
-      // TODO: write to stdout
-      console.log(a.filter(b => !args.filter || !b.alive));
+      b1.update()
+      b1.stop()
+      process.stdout.write(JSON.stringify(a.filter(b => !args.filter || !b.alive))); 
+      process.stdout.write("\n"); 
     });
+    
   }
   else
   {

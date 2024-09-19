@@ -11,7 +11,9 @@ const socialmediaprefixes = [
 ];
 
 const skippedHosts = [
-    "https://fonts.googleapis.com"
+    "fonts.googleapis.com",
+    "twitter.com",
+    "mermaidsuk.org.uk"
 ]
 
 const checkedMimeTypes = [
@@ -45,6 +47,7 @@ function consistentURL(input) {
 }
 
 function GuessContentType(url) {
+    
     if (url.pathname.toLowerCase().endsWith(".pdf")) {
         return "application/pdf";
     } 
@@ -84,33 +87,47 @@ function GuessContentType(url) {
     return "text/html";
 }
 
-async function checkURL(input, options, originalURL) {
+async function checkURL(input, options) {
 
     var toCheck = input.redirectURL ? input.redirectURL : input.url
-
+    
     // Do we have a valid URL?
     if (toCheck.length == 0) {
         input.guessedContentType = null;
         input.alive = false;
         input.reason = "Empty URL";
+        if (options.progress) { options.progress.increment(); options.progress.render() }
         return input;
     }
     else {
         try {
-            let url = new URL(toCheck);
-            
+            let url = new URL(input.url);
+
             // Skip checking this item if the mime type isn't something we check
             input.guessedContentType = GuessContentType(url);
+            
             if (!checkedMimeTypes.includes(input.guessedContentType))
             {
                 input.skipped = true
                 input.alive = true
+                if (options.progress) { options.progress.increment(); options.progress.render() }
+                return input
+            }
+
+            // Skip checking this item if the host is in the list of hosts to skip
+            if (skippedHosts.includes(url.host))
+            {
+                input.skipped = true
+                input.alive = true
+                input.reason = "Host on list to skip: " + url.host
+                if (options.progress) { options.progress.increment(); options.progress.render() }
                 return input
             }
         }
         catch (error) {
             input.alive = false;
             input.reason = error.message;
+            if (options.progress) { options.progress.increment(); options.progress.render() }
             return input;
         }
     }
@@ -147,6 +164,7 @@ async function checkURL(input, options, originalURL) {
                     if (redirectURL.pathname.length < 2) {
                         input.alive = false;
                         input.reason = "Redirected to root page " + redirectURL;
+                        if (options.progress) { options.progress.increment(); options.progress.render() }
                         return input;
                     }
                 }
@@ -159,6 +177,7 @@ async function checkURL(input, options, originalURL) {
                 if (response.headers["content-length"] < 500) {
                     input.alive = false;
                     input.reason = "Page improbably small: size was " + res.headers["content-length"];
+                    if (options.progress) { options.progress.increment(); options.progress.render() }
                     return returnValue;
                 }
 
@@ -166,40 +185,49 @@ async function checkURL(input, options, originalURL) {
                 if (response.headers["Content-Type"] && (response.headers["Content-Type"] != input.guessedContentType)) {
                     input.alive = false;
                     input.reason = "Page doesn't appear to have right type of content: " + response.headers["Content-Type"] + " vs " + input.guessedContentType;
+                    if (options.progress) { options.progress.increment(); options.progress.render() }
                     return input;
                 }
 
                 // Check the response body looks like a valid response for this presumed content type
                 var body = await response.text();
+                var excerpt = body.slice(0, 30).trim().toLowerCase();
                 switch (input.guessedContentType) {
                     case "text/html":
-                        if (!body.trim().toLowerCase().startsWith("<!doctype") && !body.trim().toLowerCase().startsWith("<html")) {
+                        if (
+                            !excerpt.startsWith("<!doctype") && 
+                            !excerpt.startsWith("<html") &&
+                            !excerpt.startsWith("<!--")
+                        ) {
                             input.alive = false;
-                            input.reason = "Does not look like a valid HTML file: first characters are " + body.trim().slice(0, 25).toLowerCase();
+                            input.reason = "Does not look like a valid HTML file: first characters are " + excerpt;
+                            if (options.progress) { options.progress.increment(); options.progress.render() }
                             return input;
                         }
                         break;
                     case "application/pdf":
-                        if (!body.trim().toLowerCase().startsWith("%pdf-")) {
+                        if (!excerpt.startsWith("%pdf-")) {
                             input.alive = false;
-                            input.reason = "Does not look like a valid PDF file: first characters are " + body.trim().slice(0, 25).toLowerCase();
+                            input.reason = "Does not look like a valid PDF file: first characters are " + excerpt;
+                            if (options.progress) { options.progress.increment(); options.progress.render() }
                             return input;
                         }
                         break;
                 }
 
                 input.alive = true;
+                if (options.progress) { options.progress.increment(); options.progress.render() }
                 return input;
-
-                break;
             default:
                 input.alive = false;
                 input.reason = "Bad HTTP status: " + response.status;
+                if (options.progress) { options.progress.increment(); options.progress.render() }
                 return input;
         }
     } catch (error) {
         input.alive = false;
         input.reason = "Connection error: " + ((error.cause) ? error.cause.message : error)
+        if (options.progress) { options.progress.increment(); options.progress.render() }
         return input;
     }
 }
@@ -208,7 +236,8 @@ async function checkBatch(urls, options)
 {
     var output = []
     var lastRequest = 0
-    for (url in urls)
+    
+    for (let url in urls)
     {
         if (Date.now() - lastRequest < options.cooldown)
         {
@@ -216,9 +245,14 @@ async function checkBatch(urls, options)
             await new Promise(resolve => setTimeout(resolve, sleepTime))
         }
 
-        lastRequest = Date.now()
-        output.push(await checkURL(urls[url], options))
+        var result = await checkURL(urls[url], options)
+        if (!result.skipped)
+        {
+            output.push(result)
+            lastRequest = Date.now()
+        }
     }
+
     return output
 }
 
@@ -226,8 +260,8 @@ async function check(input, options) {
 
     if (!options) { options = 
         {
-            timeout: 5000,
-            cooldown: 5000,
+            timeout: 10000,
+            cooldown: 10000,
         }
     }
 
@@ -247,18 +281,17 @@ async function check(input, options) {
             });
             urls = Object.values(uniqueInputs);
 
-            // TEMP: skip any twitter urls
-            urls = urls.filter(a => !a.consistentURL.startsWith("https://twitter"));
+            // Update total URLs number if we're showing progress
+            if (options.progress) { options.progress.setTotal(urls.length)}
 
-            // TODO: split URLs up by host and run serially within a host
+            // Split URLs up by host and run serially within a host
             hosts = {}
             urls.forEach((element) => {
                 let host = element.consistentURL ? (new URL(element.consistentURL)).host : "unknown"
                 if (!hosts[host]) { hosts[host] = []}
                 hosts[host].push(element)   
             })
-            
-            var results = await Promise.all(Object.keys(hosts).map(host => checkBatch(hosts[host], options))) //await Promise.all(urls.map(item => checkURL(item, options)));
+            var results = await Promise.all(Object.keys(hosts).map(host => checkBatch(hosts[host], options))) 
 
             results = results.flat()
             results.sort((a,b) => a.consistentURL == b.consistentURL ? 0 : a.consistentURL < b.consistentURL ? -1 : 1) // sort alphabetically
