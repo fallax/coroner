@@ -1,4 +1,3 @@
-const { exit } = require('yargs');
 const check = require('../index.js');
 
 const urls = [
@@ -201,13 +200,13 @@ test('URLs with different query strings are treated as different', async () => {
 // Check that URL that is supposed to be a PDF is detected as being not a PDF
 test('PDF link is detected if not actually a pdf', async () => {
   await expect(check([
-    "https://genderkit.org.uk/test.pdf"
+    "http://www.healthyshropshire.co.uk/assets/downloads/finaltrangenderguidancemarch2018.pdf"
   ])).resolves.toMatchObject(
     [
       {
         "alive": false,
-        "url": "https://genderkit.org.uk/test.pdf",
-        "guessedContentType": "application/pdf"
+        "guessedContentType": "application/pdf",
+        "url": "http://www.healthyshropshire.co.uk/assets/downloads/finaltrangenderguidancemarch2018.pdf"
       }
     ]
   );
@@ -228,3 +227,13 @@ test('PDF link is detected if not actually a pdf', async () => {
 // 308 'https://igpm.org.uk/wp-content/uploads/2022/03/Gender-Identity-Toolkit-for-General-Practice.pdf'
 
 // Pages that say 'Page not found', etc, but are served 200 are treated as dead
+// https://www.bucs.org.uk/core/core_picker/download.asp?id=31233
+// https://phw.nhs.wales/services-and-teams/cervical-screening-wales/information-resources/information-leaflets-poster-downloads-and-accessible-information/screening-information-for-transgender-service-users/
+
+// File size is improbably large for an HTML document
+
+// File size is improbably small for a PDF
+
+// Overridden mimetype is obeyed
+// eg. https://www.lgbtyouth.org.uk/media/1344/supporting-transgender-young-people.pdf
+// e.g. https://www.dpt.nhs.uk/download/Ote2T8sczT
