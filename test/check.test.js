@@ -145,11 +145,13 @@ test('ignored mimetypes are ignored', async () => {
       {
         "alive": true,
         "url": "https://genderkit.org.uk",
+        "consistentURL": "https://genderkit.org.uk/",
         "guessedContentType": "text/html"
       }, 
       {
         "alive": true,
         "url": "https://google.com",
+        "consistentURL": "https://google.com/",
         "redirect": true,
         "redirectURL": "https://www.google.com/",
         "guessedContentType": "text/html"
@@ -211,6 +213,24 @@ test('PDF link is detected if not actually a pdf', async () => {
     ]
   );
 });
+
+// Check that a page returning an HTTP 200 but which is clearly an error page is detected
+test('HTTP 200 error page fails', async () => {
+  await expect(check([
+    "https://www.bucs.org.uk/core/core_picker/download.asp?id=31233"
+  ])).resolves.toMatchObject(
+    [
+      {
+        "alive": false,
+        "guessedContentType": "text/html",
+        "url": "https://www.bucs.org.uk/core/core_picker/download.asp?id=31233",
+        "reason": "HTML document contains phrase '404 not found'"
+      }
+    ]
+  );
+});
+
+
 
 // Redirect to / is detected properly as a dead link
 

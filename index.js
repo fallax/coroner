@@ -1,5 +1,5 @@
 
-const blacklist = ["not found", "404", "problem ", "missing ", "unknown "];
+const blacklist = ["page not found", "resource not found", "error 404", "404 - not found", "404 not found", "server error", "service unavailable", "cannot be found"];
 
 const socialmediaprefixes = [
     "https://twitter.com",
@@ -13,7 +13,7 @@ const socialmediaprefixes = [
 const skippedHosts = [
     "fonts.googleapis.com",
     "twitter.com",
-    "mermaidsuk.org.uk"
+    "web.archive.org"
 ]
 
 const checkedMimeTypes = [
@@ -191,7 +191,8 @@ async function checkURL(input, options) {
 
                 // Check the response body looks like a valid response for this presumed content type
                 var body = await response.text();
-                var excerpt = body.slice(0, 30).trim().toLowerCase();
+                body = body.toLowerCase();
+                var excerpt = body.slice(0, 30).trim();
                 switch (input.guessedContentType) {
                     case "text/html":
                         if (
@@ -213,6 +214,21 @@ async function checkURL(input, options) {
                             return input;
                         }
                         break;
+                }
+
+                // Check if this appears to be an error page that isn't returning the right HTTP result code
+                if (input.guessedContentType == "text/html")
+                {
+                    for (var phrase in blacklist)
+                    {
+                        if (body.includes(blacklist[phrase]))
+                        {
+                            input.alive = false;
+                            input.reason = "HTML document contains phrase '" + blacklist[phrase] + "'";
+                            if (options.progress) { options.progress.increment(); options.progress.render() }
+                            return input;
+                        }
+                    }
                 }
 
                 input.alive = true;
@@ -246,9 +262,9 @@ async function checkBatch(urls, options)
         }
 
         var result = await checkURL(urls[url], options)
+        output.push(result)
         if (!result.skipped)
         {
-            output.push(result)
             lastRequest = Date.now()
         }
     }
@@ -261,7 +277,7 @@ async function check(input, options) {
     if (!options) { options = 
         {
             timeout: 10000,
-            cooldown: 10000,
+            cooldown: 5000,
         }
     }
 
