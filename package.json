@@ -1,6 +1,6 @@
 {
   "name": "coroner",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "commonjs",
   "exports": "./index.js",
   "description": "more useful dead link detection",

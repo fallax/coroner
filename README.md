@@ -16,6 +16,14 @@ coroner is designed to handle:
 - without hammering remote URLs (per-host rate limiting)
 - returning an explanation of suspected cause of link death
 
+## Installation
+
+Run the following:
+
+```
+npm install -g coroner
+```
+
 ## Usage
 
 To check one or more links
