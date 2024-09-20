@@ -6,6 +6,24 @@ const colors = require('ansi-colors');
 
 let data = "";
 
+function output(results, args) {
+
+  var items = results.filter(b => !args.filter || !b.alive)
+  if (args.json)
+  {
+    process.stdout.write(JSON.stringify(items));
+  }
+  else
+  {
+    items.forEach(element => {
+      var status = (!args.filter) ? element.alive ? "     " : (colors.red("DEAD") + " ") : ""
+      var url = (element.alive) ? colors.grey(element.url) : element.url
+      process.stdout.write(status + url + "\n");
+    });
+  }
+  process.stdout.write("\n"); 
+}
+
 async function main() {
 
   const parser = new ArgumentParser({
@@ -30,6 +48,14 @@ async function main() {
     }
   )
 
+  parser.add_argument(
+    '--json', '-j',
+    {
+      help:'output results in JSON format',
+      action: 'store_true'
+    }
+  )
+
   // create new progress bar
   const b1 = new cliProgress.SingleBar({
     format: '' + colors.cyan('{bar}') + '| {percentage}% || {value}/{total} checked',
@@ -44,11 +70,7 @@ async function main() {
   if (args.urls.length > 0)
   {
     var result = check(args.urls);
-    result.then((a) => 
-    {
-      process.stdout.write(JSON.stringify(a.filter(b => !args.filter || !b.alive)));
-      process.stdout.write("\n"); 
-    });
+    result.then((a) => { output(a, args) });
   }
    else if (process.stdin)
   {
@@ -66,8 +88,7 @@ async function main() {
     {
       b1.update()
       b1.stop()
-      process.stdout.write(JSON.stringify(a.filter(b => !args.filter || !b.alive))); 
-      process.stdout.write("\n"); 
+      output(a, args)
     });
     
   }
