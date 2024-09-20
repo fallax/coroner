@@ -1,5 +1,5 @@
 
-const blacklist = ["page not found", "resource not found", "error 404", "404 - not found", "404 not found", "server error", "service unavailable", "cannot be found"];
+const blacklist = ["page not found", "resource not found", "file not found", "error 404", "404 - not found", "404 not found", "server error", "service unavailable", "cannot be found", "was not found"];
 
 const socialmediaprefixes = [
     "https://twitter.com",
