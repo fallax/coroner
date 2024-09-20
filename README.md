@@ -21,23 +21,32 @@ coroner is designed to handle:
 To check one or more links
 
 ```
-node cli.js http://test1.com http://test2.com
+coroner http://test1.com http://test2.com
 ```
 
 To check all the links within file containing a list of links
 
 ```
-cat links.txt | node cli.js
+cat links.txt | coroner
 ```
 
 To check all the links within a saved HTML file and return a list of failing URLs only
 
 ```
-sed -n 's/.*href="\(h[^"]*\).*/\1/p' webpage.html | node cli.js -f
+sed -n 's/.*href="\(h[^"]*\).*/\1/p' webpage.html | coroner -f
 ```
 
 To check all the links within a live web page:
 
 ```
-curl https://test.com | sed -n 's/.*href="\(h[^"]*\).*/\1/p' | node cli.js
+curl https://test.com | sed -n 's/.*href="\(h[^"]*\).*/\1/p' | coroner
+```
+
+## Options
+
+Options are:
+
+```
+  --filter, -f  only show test failures (default: show full results)
+  --json, -j    output results in JSON format
 ```
