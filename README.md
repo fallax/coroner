@@ -35,3 +35,9 @@ To check all the links within a saved HTML file and return a list of failing URL
 ```
 sed -n 's/.*href="\(h[^"]*\).*/\1/p' webpage.html | node cli.js -f
 ```
+
+To check all the links within a live web page:
+
+```
+curl https://test.com | sed -n 's/.*href="\(h[^"]*\).*/\1/p' | node cli.js
+```
