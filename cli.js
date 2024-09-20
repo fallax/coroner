@@ -7,7 +7,6 @@ const colors = require('ansi-colors');
 let data = "";
 
 function output(results, args) {
-
   var items = results.filter(b => !args.filter || !b.alive)
   if (args.json)
   {
@@ -16,7 +15,7 @@ function output(results, args) {
   else
   {
     items.forEach(element => {
-      var status = (!args.filter) ? element.alive ? "     " : (colors.red("DEAD") + " ") : ""
+      var status = (!args.filter) ? element.alive ? (element.skipped ? (colors.grey("SKIP") + " ") : colors.grey("   ✓ ")) : (colors.red("DEAD") + " ") : ""
       var url = (element.alive) ? colors.grey(element.url) : element.url
       process.stdout.write(status + url + "\n");
     });
