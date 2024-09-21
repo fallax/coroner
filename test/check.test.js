@@ -230,6 +230,21 @@ test('HTTP 200 error page fails', async () => {
   );
 });
 
+// Check that error page phrases are ignored in non-page content (e.g. Javascript code)
+test('Blacklisted phrases are ignored in script tags', async () => {
+  await expect(check([
+    "https://www.rcpsych.ac.uk/improving-care/nccmh/service-design-and-development/advancing-mental-health-equity"
+  ])).resolves.toMatchObject(
+    [
+      {
+        "alive": true,
+        "guessedContentType": "text/html",
+        "url": "https://www.rcpsych.ac.uk/improving-care/nccmh/service-design-and-development/advancing-mental-health-equity",
+      }
+    ]
+  );
+});
+
 
 
 // Redirect to / is detected properly as a dead link

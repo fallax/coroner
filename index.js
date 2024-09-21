@@ -1,3 +1,4 @@
+const parse = require('node-html-parser').parse;
 
 const blacklist = ["page not found", "resource not found", "file not found", "error 404", "404 - not found", "404 not found", "server error", "service unavailable", "cannot be found", "was not found"];
 
@@ -191,8 +192,7 @@ async function checkURL(input, options) {
 
                 // Check the response body looks like a valid response for this presumed content type
                 var body = await response.text();
-                body = body.toLowerCase();
-                var excerpt = body.slice(0, 30).trim();
+                var excerpt = body.slice(0, 30).trim().toLowerCase();
                 switch (input.guessedContentType) {
                     case "text/html":
                         if (
@@ -219,9 +219,21 @@ async function checkURL(input, options) {
                 // Check if this appears to be an error page that isn't returning the right HTTP result code
                 if (input.guessedContentType == "text/html")
                 {
+                    // Parse html and remove script tags etc that won't be displayed on 
+                    var html = null
+                    html = parse(body, {
+                        blockTextElements: { // ignore these tags
+                          script: false,
+                          noscript: false,
+                          style: false,
+                          pre: false
+                        }
+                      })
+                    var searchString = html.toString().toLowerCase()
+
                     for (var phrase in blacklist)
                     {
-                        if (body.includes(blacklist[phrase]))
+                        if (searchString.includes(blacklist[phrase]))
                         {
                             input.alive = false;
                             input.reason = "HTML document contains phrase '" + blacklist[phrase] + "'";
