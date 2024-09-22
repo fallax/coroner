@@ -116,8 +116,16 @@ const tests = [
     },
     {
         phase: 'post',
-        name: 'badHTTPCode', // Check if the response had an HTTP response code for an error
-        test: (input, options, response) => ![200, 301, 302, 304, 307, 308].includes(response.status),
+        statusCodes: [403],
+        skipUrl: true,
+        name: 'skipCloudflare', // Check if the response is CloudFlare blocking our request
+        test: (input, options, response, responseText) => responseText.slice(0, 100).trim().startsWith("<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title>"),
+        reason: (input, options, response) => "Unable to check - host protected by CloudFlare"
+    },
+    {
+        phase: 'post',
+        name: 'badHTTPCode', // Check if the response had a bad HTTP response code indicating an error
+        test: (input, options, response) => ![200, 301, 302, 303, 304, 307, 308].includes(response.status),
         reason: (input, options, response) => "Bad HTTP status: " + response.status
     },
     {
@@ -169,14 +177,14 @@ const tests = [
     },
     {
         phase: 'post',
-        statusCodes: [301, 302, 307, 308],
+        statusCodes: [301, 302, 303, 307, 308],
         name: 'invalidRedirect', // Check for redirects that provide only a path starting with '/'
         test: (input, options, response) => response.url[0] == "/",
         reason: (input, options, response) => "Invalid path in redirect"
     },
     {
         phase: 'post',
-        statusCodes: [301, 302, 307, 308],
+        statusCodes: [301, 302, 303, 307, 308],
         name: 'invalidRedirect', // Check for redirects that redirect you to the root page of a server rather than a specific resource
         test: (input, options, response) => 
             (new URL(input.currentURL)).pathname.length > 2 // path requested was not /

@@ -62,7 +62,7 @@ async function checkURL(input, options) {
             mode: "no-cors", // no-cors, *cors, same-origin
             cache: "reload", // Force the URL to be refetched fresh every time
             // credentials: "same-origin", // include, *same-origin, omit
-            // headers: {
+                        // headers: {
             //     "Accept": "*/*",
             //     "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)"
             // },
@@ -72,7 +72,7 @@ async function checkURL(input, options) {
 
         // Grab the request body for testing against
         var responseText = null;
-        if ([200,304].includes(response.status))
+        if ([200,304,403].includes(response.status))
         {
             responseText = await response.text();
         }
@@ -85,7 +85,7 @@ async function checkURL(input, options) {
         if (!runTests(posttests, input, options, response, responseText)) { return input }
 
         // If this a redirect, run the checks again on the redirect URL; otherwise return a success
-        if ([301,302,307,308].includes(response.status))
+        if ([301,302,303,307,308].includes(response.status))
         {
             // Check the resource we've been redirected to instead
             input.redirect = true;
