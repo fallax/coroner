@@ -55,6 +55,36 @@ async function main() {
     }
   )
 
+  parser.add_argument(
+    '--skip', '-s',
+    {
+      type: 'str', 
+      help:'skip links from the specified host',
+      action: 'append',
+      default: []
+    }
+  )
+
+  parser.add_argument(
+    '--timeout', '-t',
+    {
+      type: 'int', 
+      help: 'maximum time (ms) to allow remote host to respond',
+      action: 'store',
+      default: 5000
+    }
+  )
+
+  parser.add_argument(
+    '--cooldown', '-c',
+    {
+      type: 'int', 
+      help: 'minimum time (ms) between requests to a specific host',
+      action: 'store',
+      default: 5000
+    }
+  )
+
   // create new progress bar
   const b1 = new cliProgress.SingleBar({
     format: '' + colors.cyan('{bar}') + '| {percentage}% || {value}/{total} checked',
@@ -68,7 +98,7 @@ async function main() {
 
   if (args.urls.length > 0)
   {
-    var result = check(args.urls);
+    var result = check(args.urls, {timeout: args.timeout, cooldown: args.cooldown, skippedHosts: args.skip});
     result.then((a) => { output(a, args) });
   }
    else if (process.stdin)
@@ -82,7 +112,7 @@ async function main() {
       speed: "N/A"
     });
 
-    var result = check(data, {progress: b1, timeout: 10000, cooldown: 10000});
+    var result = check(data, {progress: b1, timeout: args.timeout, cooldown: args.cooldown, skippedHosts: args.skip});
     result.then((a) => 
     {
       b1.update()

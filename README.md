@@ -55,6 +55,12 @@ curl https://test.com | sed -n 's/.*href="\(h[^"]*\).*/\1/p' | coroner
 Options are:
 
 ```
-  --filter, -f  only show test failures (default: show full results)
-  --json, -j    output results in JSON format
+  -h, --help            show this help message and exit
+  --filter, -f          only show test failures (default: show full results)
+  --json, -j            output results in JSON format (default: false)
+  --skip SKIP, -s SKIP  skip links from the specified host
+  --timeout TIMEOUT, -t TIMEOUT
+                        maximum time (ms) to allow remote host to respond
+  --cooldown COOLDOWN, -c COOLDOWN
+                        minimum time (ms) between requests to a specific host
 ```
