@@ -1,7 +1,7 @@
 const parse = require('node-html-parser').parse;
 
 // Blacklist of phrases that indicate this is likely a page not found or error page
-const blacklist = ["page not found", "resource not found", "file not found", "error 404", "404 - not found", "404 not found", "server error", "service unavailable", "cannot be found", "was not found"];
+const blacklist = ["page not found", "resource not found", "file not found", "error 404", "404 - not found", "404 not found", "server error", "service unavailable"];
 
 // List of mimetypes whose contents are checked (i.e. not automatically skipped)
 const checkedMimeTypes = [
@@ -154,10 +154,11 @@ const tests = [
         statusCodes: [200, 304],
         name: 'validHTML', // Check the response body looks like a valid HTML document
         test: (input, options, response, responseText) =>
-            !responseText.slice(0, 30).trim().toLowerCase().startsWith("<!doctype") && 
+            !responseText.slice(0, 30).trim().toLowerCase().startsWith("<!doctype html") && 
             !responseText.slice(0, 30).trim().toLowerCase().startsWith("<html") &&
-            !responseText.slice(0, 30).trim().toLowerCase().startsWith("<!--"),
-        reason: (input, options, response, responseText) => "Does not look like a valid HTML file: first characters are " + responseText.slice(0, 30).trim()
+            !responseText.slice(0, 30).trim().toLowerCase().startsWith("<!--") &&
+            !responseText.slice(0, 60).trim().toLowerCase().startsWith("<?xml version=\"1.0\" encoding=\"utf-8\"?><!doctype html"),
+        reason: (input, options, response, responseText) => "Does not look like a valid HTML file: first characters are " + responseText.slice(0, 60).trim().toLowerCase()
     },
     {
         phase: 'post',
