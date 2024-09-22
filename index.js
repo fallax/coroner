@@ -54,7 +54,7 @@ async function checkURL(input, options) {
     if (!runTests(pretests, input, options)) { return input }
 
     try {
-
+        
         // Default options are marked with *
         const response = await fetch(input.currentURL, {
             signal: AbortSignal.timeout(options.timeout),
@@ -62,10 +62,10 @@ async function checkURL(input, options) {
             mode: "no-cors", // no-cors, *cors, same-origin
             cache: "reload", // Force the URL to be refetched fresh every time
             // credentials: "same-origin", // include, *same-origin, omit
-                        // headers: {
-            //     "Accept": "*/*",
-            //     "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)"
-            // },
+            headers: {
+                 "Accept": "*/*",
+                 "User-Agent": "coroner/1.0.4"
+             },
             redirect: "manual", // manual, *follow, error
             // referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
         });
@@ -89,7 +89,9 @@ async function checkURL(input, options) {
         {
             // Check the resource we've been redirected to instead
             input.redirect = true;
+            if (!input.redirects) { input.redirects = [input.currentURL] }
             input.currentURL = (new URL(response.headers.get("location"), input.currentURL)).href;
+            input.redirects.push(input.currentURL)
             return await checkURL(input, options, input.url);
         }
         else

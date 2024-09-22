@@ -75,6 +75,12 @@ const tests = [
     },
     {
         phase: 'pre',
+        name: "tooManyRedirects", // Fail if too many redirects have been made
+        test: (input, options, response) => input.redirects && input.redirects.length > 5,
+        reason: (input, options, response) => "Too many redirects"
+    },
+    {
+        phase: 'pre',
         skipUrl: true,
         name: "invalidURL", // Skip checking this item if the URL cannot be parsed
         test: (input, options, response) => 
