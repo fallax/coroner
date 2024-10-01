@@ -71,7 +71,7 @@ async function main() {
       type: 'int', 
       help: 'maximum time (ms) to allow remote host to respond',
       action: 'store',
-      default: 5000
+      default: 10000
     }
   )
 

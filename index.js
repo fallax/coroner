@@ -136,7 +136,7 @@ async function check(input, options) {
 
     // Set default options for options if not provided already
     if (!options) { options = {} }
-    if (!options.timeout) { options.timeout = 5000 }
+    if (!options.timeout) { options.timeout = 10000 }
     if (!options.cooldown) { options.cooldown = 5000 }
     if (!options.skippedHosts) { options.skippedHosts = [] }
 
