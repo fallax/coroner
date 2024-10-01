@@ -64,7 +64,7 @@ async function checkURL(input, options) {
             // credentials: "same-origin", // include, *same-origin, omit
             headers: {
                  "Accept": "*/*",
-                 "User-Agent": "coroner/1.0.4"
+                 "User-Agent": "coroner/1.0.5"
              },
             redirect: "manual", // manual, *follow, error
             // referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
