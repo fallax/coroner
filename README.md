@@ -3,22 +3,27 @@ Useful dead link checking
 
 ## What's this?
 
-Existing checks for broken or dead links tend to miss more subtle types of link rot, such as:
+Most tools for finding broken or dead links check for an HTTP error code like 404.
 
-- redirecting the user to the front page of the site instead of the content they requested
-- returning an error page but with an HTTP 200 response
-- returning an HTML page (such as a 'this content has now moved' page) when a PDF was requested
+When a resource is missing, instead of returning an HTTP 404 code, servers will sometimes return:
 
-coroner is designed to handle:
+- an HTTP 200 response and an HTML page saying 'page not found' or similar
+- an HTTP redirect to the front page of the site (or of another site) not the resource requested
+- an infinite chain of redirects
+- a completely different resource than the one requested
 
-- diverse types of link rot
+coroner is designed to detect dead links:
+
+- including all of the above situations
 - rapidly (tested on lists of 1000s of URLs gathered from real sites)
 - without hammering remote URLs (per-host rate limiting)
-- returning an explanation of suspected cause of link death
+- as part of an automated pipeline (takes input through shell pipes and can output JSON test results)
 
 ## Installation
 
-Run the following:
+Install node and npm (for example, through [nvm](https://github.com/nvm-sh/nvm)).
+
+Then, run the following:
 
 ```
 npm install -g coroner
@@ -44,10 +49,10 @@ To check all the links within a saved HTML file and return a list of failing URL
 sed -n 's/.*href="\(h[^"]*\).*/\1/p' webpage.html | coroner -f
 ```
 
-To check all the links within a live web page:
+To check all the links within a live web page, skipping over internal links:
 
 ```
-curl https://test.com | sed -n 's/.*href="\(h[^"]*\).*/\1/p' | coroner
+curl https://test.com | sed -n 's/.*href="\(h[^"]*\).*/\1/p' | coroner -s test.com
 ```
 
 ## Options
