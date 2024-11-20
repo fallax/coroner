@@ -55,6 +55,12 @@ To check all the links within a live web page, skipping over internal links:
 curl https://test.com | sed -n 's/.*href="\(h[^"]*\).*/\1/p' | coroner -s test.com
 ```
 
+Check all links within markdown files in a folder or its subfolders recursively:
+
+```
+find . -name "*.md" -not \( -name .svn -prune -o -name .git -prune \) -type f -print0 | xargs -0 sed -n 's/.*(\(http[^)]*\).*/\1/p' | coroner
+```
+
 ## Options
 
 Options are:

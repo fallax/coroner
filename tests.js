@@ -160,11 +160,11 @@ const tests = [
         statusCodes: [200, 304],
         name: 'validHTML', // Check the response body looks like a valid HTML document
         test: (input, options, response, responseText) =>
-            !responseText.slice(0, 30).trim().toLowerCase().startsWith("<!doctype html") && 
-            !responseText.slice(0, 30).trim().toLowerCase().startsWith("<html") &&
-            !responseText.slice(0, 30).trim().toLowerCase().startsWith("<!--") &&
-            !responseText.slice(0, 60).trim().toLowerCase().startsWith("<?xml version=\"1.0\" encoding=\"utf-8\"?><!doctype html"),
-        reason: (input, options, response, responseText) => "Does not look like a valid HTML file: first characters are " + responseText.slice(0, 60).trim().toLowerCase()
+            !responseText.slice(0, 100).trim().toLowerCase().startsWith("<!doctype html") && 
+            !responseText.slice(0, 100).trim().toLowerCase().startsWith("<html") &&
+            !responseText.slice(0, 100).trim().toLowerCase().startsWith("<!--") &&
+            !responseText.slice(0, 100).trim().toLowerCase().startsWith("<?xml version=\"1.0\" encoding=\"utf-8\"?><!doctype html"),
+        reason: (input, options, response, responseText) => "Does not look like a valid HTML file: first characters are '" + responseText.slice(0, 60).trim().toLowerCase() + "'"
     },
     {
         phase: 'post',
