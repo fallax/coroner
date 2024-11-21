@@ -332,7 +332,7 @@ test('Redirect to root is handled correctly', async () => {
 });
 
 // Skip urls on hosts in host blacklist (e.g. fonts.google.com)
-test('Redirect to root is handled correctly', async () => {
+test('Blacklisted hosts are skipped', async () => {
   await expect(check([
     "https://fonts.googleapis.com/css?family=Bree+Serif|Roboto+Condensed:700|Roboto:300,300i,700&display=swap"
   ],
@@ -347,6 +347,24 @@ test('Redirect to root is handled correctly', async () => {
         "skipped": true,
         "alive": true,
         "reason": "Host on list to skip: fonts.googleapis.com"
+      }
+    ]
+  );
+});
+
+// Skip urls with extensions we don't check
+test('Blacklisted extensions are skipped', async () => {
+  await expect(check([
+    "https://test.com/test.JPG"
+  ]
+  )).resolves.toMatchObject(
+    [
+      {
+        "url": "https://test.com/test.JPG",
+        "guessedContentType": "image/jpeg",
+        "skipped": true,
+        "alive": true,
+        "reason": "Skipped due to mime-type 'image/jpeg'"
       }
     ]
   );

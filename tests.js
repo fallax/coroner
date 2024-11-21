@@ -22,7 +22,11 @@ const mimeTypes =
     ".woff2": "font/woff2",
     ".css": "text/css",
     ".htm": "text/html",
-    ".html": "text/html"
+    ".html": "text/html",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp"
 }
 
 // Given a URL, return a guess of the mimetype of the data that will be served from it
