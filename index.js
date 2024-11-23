@@ -17,8 +17,6 @@ function consistentURL(input) {
         return url.protocol + "//" + host + path + url.search;
     }
     catch (error) {
-        console.log(error)
-        console.log(input)
         return null;
     }    
 }

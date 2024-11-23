@@ -72,9 +72,15 @@ function searchHtml(html, searchStrings)
 const tests = [
     {
         phase: 'pre',
+        name: "invalidURL", // Skip checking this item if no consistent URL listed (this means we couldn't parse the URL)
+        test: (input, options, response) => !input.consistentURL,
+        reason: (input, options, response) => "Invalid URL"
+    },
+    {
+        phase: 'pre',
         skipUrl: true,
         name: "zeroLengthURL", // Skip checking this item if URL is zero length or null
-        test: (input, options, response) => !input.currentURL || input.currentURL.length == 0,
+        test: (input, options, response) => input.currentURL.length == 0,
         reason: (input, options, response) => "Empty URL"
     },
     {

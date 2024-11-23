@@ -21,6 +21,16 @@ test('alive URL works correctly', async () => {
   );
 });
 
+// Test that an invalid URL is marked as broken
+test('invalid URL shown as broken', async () => {
+  await expect(check("https://2342%")).resolves.toMatchObject(
+    [{
+      url: "https://2342%",
+      "alive": false
+    }]
+  );
+});
+
 // Test that a URL which redirects to an alive URL is seen as alive
 test('redirect URL works correctly', async () => {
   await expect(check("https://www.daringfireball.net")).resolves.toMatchObject(
