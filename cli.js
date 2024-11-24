@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-const check = require('./index.js');
-const { ArgumentParser } = require('argparse');
-const cliProgress = require('cli-progress');
-const colors = require('ansi-colors');
+import { check } from './index.js';
+import { ArgumentParser } from 'argparse';
+import { SingleBar } from 'cli-progress';
+import pkg from 'ansi-colors';
+const { grey, red, cyan } = pkg;
 
 let data = "";
 
@@ -15,8 +16,8 @@ function output(results, args) {
   else
   {
     items.forEach(element => {
-      var status = (!args.filter) ? element.alive ? (element.skipped ? (colors.grey("SKIP") + " ") : colors.grey("   ✓ ")) : (colors.red("DEAD") + " ") : ""
-      var url = (element.alive) ? colors.grey(element.url) : element.url
+      var status = (!args.filter) ? element.alive ? (element.skipped ? (grey("SKIP") + " ") : grey("   ✓ ")) : (red("DEAD") + " ") : ""
+      var url = (element.alive) ? grey(element.url) : element.url
       process.stdout.write(status + url + "\n");
     });
   }
@@ -86,8 +87,8 @@ async function main() {
   )
 
   // create new progress bar
-  const b1 = new cliProgress.SingleBar({
-    format: '' + colors.cyan('{bar}') + '| {percentage}% || {value}/{total} checked',
+  const b1 = new SingleBar({
+    format: '' + cyan('{bar}') + '| {percentage}% || {value}/{total} checked',
     barCompleteChar: '\u2588',
     barIncompleteChar: '\u2591',
     hideCursor: true,

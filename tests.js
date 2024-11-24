@@ -1,4 +1,4 @@
-const parse = require('node-html-parser').parse;
+import { parse } from 'node-html-parser';
 
 // Blacklist of phrases that indicate this is likely a page not found or error page
 const blacklist = ["page not found", "resource not found", "file not found", "error 404", "404 - not found", "404 not found", "server error", "service unavailable"];
@@ -69,7 +69,7 @@ function searchHtml(html, searchStrings)
 }
 
 // Our list of tests to be run on URLS
-const tests = [
+export const tests = [
     {
         phase: 'pre',
         name: "invalidURL", // Skip checking this item if no consistent URL listed (this means we couldn't parse the URL)
@@ -209,5 +209,3 @@ const tests = [
         reason: (input, options, response) => "Redirected to root page " + (new URL(response.headers.get("location"), input.currentURL)).href
     },
 ]
-
-module.exports = tests;

@@ -1,4 +1,5 @@
-const tests = require('./tests.js');
+import { tests } from './tests.js';
+import { fetch } from 'fetch-h2'
 
 // Return a URL in a consistent format for comparing to other urls
 // NB: comparisons remain case-sensitive!
@@ -55,14 +56,15 @@ async function checkURL(input, options) {
         
         // Default options are marked with *
         const response = await fetch(input.currentURL, {
-            signal: AbortSignal.timeout(options.timeout),
+            //signal: AbortSignal.timeout(options.timeout),
+            timeout: options.timeout,
             method: "GET", 
-            mode: "no-cors", // no-cors, *cors, same-origin
-            cache: "reload", // Force the URL to be refetched fresh every time
+            //mode: "no-cors", // no-cors, *cors, same-origin
+            //cache: "reload", // Force the URL to be refetched fresh every time
             // credentials: "same-origin", // include, *same-origin, omit
             headers: {
                  "Accept": "*/*",
-                 "User-Agent": "coroner/1.0.5"
+                 "User-Agent": "coroner/1.0.6"
              },
             redirect: "manual", // manual, *follow, error
             // referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
@@ -130,7 +132,7 @@ async function checkBatch(urls, options)
     return output
 }
 
-async function check(input, options) {
+export async function check(input, options) {
 
     // Set default options for options if not provided already
     if (!options) { options = {} }
@@ -143,7 +145,7 @@ async function check(input, options) {
             if (!input.length) { throw ("Unexpected input") };
 
             // Create objects to represent all of our URLs
-            urls = input.map((element) => { return {"url": element, "consistentURL": consistentURL(element)}});
+            var urls = input.map((element) => { return {"url": element, "consistentURL": consistentURL(element)}});
 
             // Remove any duplicates immediately
             let uniqueInputs = {};
@@ -158,7 +160,7 @@ async function check(input, options) {
             if (options.progress) { options.progress.setTotal(urls.length)}
 
             // Split URLs up by host and run serially within a host
-            hosts = {}
+            var hosts = {}
             urls.forEach((element) => {
                 let host = element.consistentURL ? (new URL(element.consistentURL)).host : "unknown"
                 if (!hosts[host]) { hosts[host] = []}
@@ -179,5 +181,3 @@ async function check(input, options) {
             return 1;
     }
 }
-
-module.exports = check;
