@@ -34,31 +34,37 @@ npm install -g coroner
 To check one or more links
 
 ```
-coroner http://test1.com http://test2.com
+coroner url http://test1.com http://test2.com
 ```
 
 To check all the links within file containing a list of links
 
 ```
-cat links.txt | coroner
+cat links.txt | coroner url
 ```
 
 To check all the links within a saved HTML file and return a list of failing URLs only
 
 ```
-sed -n 's/.*href="\(h[^"]*\).*/\1/p' webpage.html | coroner -f
+sed -n 's/.*href="\(h[^"]*\).*/\1/p' webpage.html | coroner url -f
 ```
 
 To check all the links within a live web page, skipping over internal links:
 
 ```
-curl https://test.com | sed -n 's/.*href="\(h[^"]*\).*/\1/p' | coroner -s test.com
+coroner page https://test.com -s test.com
+```
+
+To check all the links within all pages of a website, skipping over internal links:
+
+```
+coroner site https://test.com -s test.com
 ```
 
 Check all links within markdown files in a folder or its subfolders recursively:
 
 ```
-find . -name "*.md" -not \( -name .svn -prune -o -name .git -prune \) -type f -print0 | xargs -0 sed -n 's/.*(\(http[^)]*\).*/\1/p' | coroner
+find . -name "*.md" -not \( -name .svn -prune -o -name .git -prune \) -type f -print0 | xargs -0 sed -n 's/.*(\(http[^)]*\).*/\1/p' | coroner url
 ```
 
 ## Options

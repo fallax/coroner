@@ -1,5 +1,5 @@
 import { tests } from './tests.js';
-import { fetch } from 'fetch-h2'
+import { fetch as fetchh2 } from 'fetch-h2'
 
 // Return a URL in a consistent format for comparing to other urls
 // NB: comparisons remain case-sensitive!
@@ -54,21 +54,41 @@ async function checkURL(input, options) {
 
     try {
         
+        var response = null
+        var http2 = input.currentURL.startsWith("https://facebook.com") || input.currentURL.startsWith("https://www.facebook.com")
+
         // Default options are marked with *
-        const response = await fetch(input.currentURL, {
-            //signal: AbortSignal.timeout(options.timeout),
-            timeout: options.timeout,
-            method: "GET", 
-            //mode: "no-cors", // no-cors, *cors, same-origin
-            //cache: "reload", // Force the URL to be refetched fresh every time
-            // credentials: "same-origin", // include, *same-origin, omit
-            headers: {
-                 "Accept": "*/*",
-                 "User-Agent": "coroner/1.0.6"
-             },
-            redirect: "manual", // manual, *follow, error
-            // referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-        });
+        if (http2) {
+            response = await fetchh2(input.currentURL, {
+                //signal: AbortSignal.timeout(options.timeout),
+                timeout: options.timeout,
+                method: "GET", 
+                //mode: "no-cors", // no-cors, *cors, same-origin
+                //cache: "reload", // Force the URL to be refetched fresh every time
+                // credentials: "same-origin", // include, *same-origin, omit
+                headers: {
+                    "Accept": "*/*",
+                    "User-Agent": "coroner/1.0.6"
+                },
+                redirect: "manual", // manual, *follow, error
+                // referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+            })
+        } else
+        {
+            response = await fetch(input.currentURL, {
+                //signal: AbortSignal.timeout(options.timeout),
+                method: "GET", 
+                //mode: "no-cors", // no-cors, *cors, same-origin
+                //cache: "reload", // Force the URL to be refetched fresh every time
+                // credentials: "same-origin", // include, *same-origin, omit
+                headers: {
+                    "Accept": "*/*",
+                    "User-Agent": "coroner/1.0.6"
+                },
+                redirect: "manual", // manual, *follow, error
+                // referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+            })
+        }
 
         // Grab the request body for testing against
         var responseText = null;
@@ -111,7 +131,7 @@ async function checkBatch(urls, options)
 {
     var output = []
     var lastRequest = 0
-    
+
     for (let url in urls)
     {
         if (Date.now() - lastRequest < options.cooldown)
@@ -142,10 +162,26 @@ export async function check(input, options) {
 
     switch (typeof (input)) {
         case "object":
+            
             if (!input.length) { throw ("Unexpected input") };
 
             // Create objects to represent all of our URLs
-            var urls = input.map((element) => { return {"url": element, "consistentURL": consistentURL(element)}});
+            var urls = []
+            for (var item of input)
+            {
+                if (typeof(item) == "object")
+                {
+                    if (item.url)
+                    {
+                        item.consistentURL = consistentURL(item.url)
+                    }
+                    urls.push(item)
+                }
+                else
+                {
+                    urls.push({"url": item, "consistentURL": consistentURL(item)})
+                }
+            }
 
             // Remove any duplicates immediately
             let uniqueInputs = {};
@@ -155,6 +191,8 @@ export async function check(input, options) {
                 }
             });
             urls = Object.values(uniqueInputs);
+
+            // TODO: if local urls / relative urls within a host are being skipped, remove these immediately
 
             // Update total URLs number if we're showing the progress bar
             if (options.progress) { options.progress.setTotal(urls.length)}
@@ -166,6 +204,7 @@ export async function check(input, options) {
                 if (!hosts[host]) { hosts[host] = []}
                 hosts[host].push(element)   
             })
+            
             var results = await Promise.all(Object.keys(hosts).map(host => checkBatch(hosts[host], options))) 
 
             results = results.flat()
