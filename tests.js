@@ -72,16 +72,30 @@ function searchHtml(html, searchStrings)
 export const tests = [
     {
         phase: 'pre',
-        name: "invalidURL", // Skip checking this item if no consistent URL listed (this means we couldn't parse the URL)
-        test: (input, options, response) => !input.consistentURL,
-        reason: (input, options, response) => "Invalid URL"
-    },
-    {
-        phase: 'pre',
         skipUrl: true,
         name: "zeroLengthURL", // Skip checking this item if URL is zero length or null
         test: (input, options, response) => input.currentURL.length == 0,
         reason: (input, options, response) => "Empty URL"
+    },
+    {
+        phase: 'pre',
+        skipUrl: true,
+        name: "anchorURL", // Skip checking this item if URL starts with hash/pound symbol (is an anchor within the page)
+        test: (input, options, response) => input.currentURL[0] == "#",
+        reason: (input, options, response) => "Anchor URL - skipped"
+    },
+    {
+        phase: 'pre',
+        skipUrl: true,
+        name: "mailtoURL", // Skip checking this item if URL starts with hash/pound symbol (is an anchor within the page)
+        test: (input, options, response) => input.currentURL.startsWith("mailto"),
+        reason: (input, options, response) => "mailto URL - skipped"
+    },
+    {
+        phase: 'pre',
+        name: "invalidURL", // Skip checking this item if no consistent URL listed (this means we couldn't parse the URL)
+        test: (input, options, response) => !input.consistentURL,
+        reason: (input, options, response) => "Invalid URL"
     },
     {
         phase: 'pre',
@@ -91,8 +105,7 @@ export const tests = [
     },
     {
         phase: 'pre',
-        skipUrl: true,
-        name: "invalidURL", // Skip checking this item if the URL cannot be parsed
+        name: "invalidURL", // Fail this URL if the URL cannot be parsed
         test: (input, options, response) => 
         {
             try {
