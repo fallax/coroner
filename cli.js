@@ -154,6 +154,16 @@ async function main() {
     }
   )
 
+  parser.add_argument(
+    '--requests',
+    {
+      type: 'int', 
+      help: 'maximum number of requests that coroner can make at once',
+      action: 'store',
+      default: 10
+    }
+  )
+
   var args = parser.parse_args();
 
   // Generate our list of URLs to check
@@ -229,8 +239,15 @@ async function main() {
       b1.update()
       b1.stop()
       output(a, args)
-      // TODO: return a useful exit code
-      process.exit()
+      
+      if (a.some((a) => !a.alive))
+      {
+        process.exit(1)
+      }
+      else
+      {
+        process.exit()
+      }
     });
   }
   else

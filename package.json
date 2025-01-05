@@ -29,6 +29,8 @@
     "argparse": "^2.0.1",
     "cli-progress": "^3.12.0",
     "fetch-h2": "^3.0.2",
-    "node-html-parser": "^6.1.13"
+    "node-html-parser": "^6.1.13",
+    "p-limit": "^6.2.0",
+    "sitemapper": "^3.2.20"
   }
 }

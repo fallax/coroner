@@ -1,14 +1,13 @@
-import { tests } from './tests.js';
+import { tests, getURL } from './tests.js';
 import { fetch as fetchh2 } from 'fetch-h2'
+import pLimit from 'p-limit';
 
 // Return a URL in a consistent format for comparing to other urls
 // NB: comparisons remain case-sensitive!
 function consistentURL(input) {
-    if (input.substring(0,4) != "http") { input = "//" + input } // forwardslashes to ensure it grabs the schema      
-
     // try and make a new URL object
     try {
-        var url = new URL(input, "http://www.example.com")
+        var url = getURL(input)
         
         // Construct a standardised URL
         var host = url.host.replace("www.", "")
@@ -123,6 +122,12 @@ async function checkURL(input, options) {
     } catch (error) {
         input.alive = false;
         input.reason = "Connection error: " + ((error.cause) ? error.cause.message : error)
+
+        //TODO: move error handling to before running post-tests, catch specific errors in post-tests
+        if (error.cause)
+        {
+            input.errorCode = error.cause.code
+        }
         return input;
     }
 }
@@ -140,13 +145,18 @@ async function checkBatch(urls, options)
             await new Promise(resolve => setTimeout(resolve, sleepTime))
         }
 
-        var result = await checkURL(urls[url], options)
+        var result = await options.limiter(checkURL, urls[url], options)
         output.push(result)
         if (options.progress) { options.progress.increment(); options.progress.render() }
         if (!result.skipped)
         {
             lastRequest = Date.now()
         }
+
+        // TODO: fail all URLs in batch under certain conditions 
+        // - e.g. this is a host where DNS lookup is failing
+        // - e.g. this is a host marked for skipping
+        // Can't just break out of loop here - need to actually set failure reason for each url
     }
 
     return output
@@ -159,6 +169,7 @@ export async function check(input, options) {
     if (!options.timeout) { options.timeout = 10000 }
     if (!options.cooldown) { options.cooldown = 5000 }
     if (!options.skippedHosts) { options.skippedHosts = [] }
+    if (!options.requests) { options.requests = 10 }
 
     switch (typeof (input)) {
         case "object":
@@ -173,13 +184,16 @@ export async function check(input, options) {
                 {
                     if (item.url)
                     {
-                        item.consistentURL = consistentURL(item.url)
+                        item.currentURL = item.url
+                        item.consistentURL = consistentURL(item)
                     }
                     urls.push(item)
                 }
                 else
-                {
-                    urls.push({"url": item, "consistentURL": consistentURL(item)})
+                { 
+                    var newItem = {"url": item, "currentURL": item}
+                    newItem.consistentURL = consistentURL(newItem)
+                    urls.push(newItem)
                 }
             }
 
@@ -189,13 +203,16 @@ export async function check(input, options) {
                 if (!Object.keys(uniqueInputs).includes(element.consistentURL)) {
                     uniqueInputs[element.consistentURL] = element;
                 }
+
+                // TODO: maintain a list of all source URLs we've seen
             });
             urls = Object.values(uniqueInputs);
 
-            // TODO: if local urls / relative urls within a host are being skipped, remove these immediately
-
             // Update total URLs number if we're showing the progress bar
             if (options.progress) { options.progress.setTotal(urls.length)}
+
+            // Set up limit on how many outgoing connections we can have at once
+            options.limiter = pLimit(options.requests)
 
             // Split URLs up by host and run serially within a host
             var hosts = {}

@@ -29,6 +29,10 @@ const mimeTypes =
     ".webp": "image/webp"
 }
 
+export function getURL(input) {
+    return input.source ? new URL(input.currentURL, input.source) : new URL(input.currentURL)
+}
+
 // Given a URL, return a guess of the mimetype of the data that will be served from it
 function GuessContentType(url) {
     
@@ -87,9 +91,16 @@ export const tests = [
     {
         phase: 'pre',
         skipUrl: true,
-        name: "mailtoURL", // Skip checking this item if URL starts with hash/pound symbol (is an anchor within the page)
+        name: "mailtoURL", // Skip checking this item if URL is a 'mailto' URL
         test: (input, options, response) => input.currentURL.startsWith("mailto"),
         reason: (input, options, response) => "mailto URL - skipped"
+    },
+    {
+        phase: 'pre',
+        skipUrl: true,
+        name: "mailtoURL", // Skip checking this item if URL is a 'javascript' URL
+        test: (input, options, response) => input.currentURL.startsWith("javascript"),
+        reason: (input, options, response) => "javascript URL - skipped"
     },
     {
         phase: 'pre',
@@ -109,7 +120,7 @@ export const tests = [
         test: (input, options, response) => 
         {
             try {
-                let url = new URL(input.currentURL);
+                let url = getURL(input)
             }
             catch (error) {
                 return true
@@ -118,7 +129,7 @@ export const tests = [
         reason: (input, options, response) => 
         {
             try {
-                let url = new URL(input.currentURL);
+                let url = getURL(input)
             }
             catch (error) {
                 return "Error: " + error.message
@@ -131,7 +142,7 @@ export const tests = [
         name: "skippedMimeType", // Skip checking this item if the mime type isn't something we check
         test: (input, options, response) => 
         {
-            input.guessedContentType = GuessContentType(new URL(input.url));
+            input.guessedContentType = GuessContentType(getURL(input));
             return !checkedMimeTypes.includes(input.guessedContentType)
         },
         reason: (input, options, response) => "Skipped due to mime-type '" + input.guessedContentType + "'"
@@ -140,8 +151,8 @@ export const tests = [
         phase: 'pre',
         skipUrl: true,
         name: "skippedHost", // Skip checking this item if the host is in the list of hosts to skip
-        test: (input, options, response) => options.skippedHosts.includes((new URL(input.currentURL)).host),
-        reason: (input, options, response) => input.reason = "Host on list to skip: " + (new URL(input.currentURL)).host
+        test: (input, options, response) => options.skippedHosts.includes(getURL(input).host),
+        reason: (input, options, response) => input.reason = "Host on list to skip: " + getURL(input).host
     },
     {
         phase: 'post',
@@ -217,7 +228,7 @@ export const tests = [
         statusCodes: [301, 302, 303, 307, 308],
         name: 'invalidRedirect', // Check for redirects that redirect you to the root page of a server rather than a specific resource
         test: (input, options, response) => 
-            (new URL(input.currentURL)).pathname.length > 2 // path requested was not /
+            (getURL(input)).pathname.length > 2 // path requested was not /
             && (new URL(response.headers.get("location"), input.currentURL)).pathname.length < 2, // but was redirected to /
         reason: (input, options, response) => "Redirected to root page " + (new URL(response.headers.get("location"), input.currentURL)).href
     },

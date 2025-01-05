@@ -74,10 +74,11 @@ Options are:
 ```
   -h, --help            show this help message and exit
   --filter, -f          only show test failures (default: show full results)
-  --json, -j            output results in JSON format (default: false)
+  --json, -j            output results in JSON format
   --skip SKIP, -s SKIP  skip links from the specified host
   --timeout TIMEOUT, -t TIMEOUT
                         maximum time (ms) to allow remote host to respond
   --cooldown COOLDOWN, -c COOLDOWN
                         minimum time (ms) between requests to a specific host
+  --requests REQUESTS   maximum number of requests that coroner can make at once (default: 10)
 ```
