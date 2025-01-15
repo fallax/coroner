@@ -36,6 +36,11 @@ export function getURL(input) {
 // Given a URL, return a guess of the mimetype of the data that will be served from it
 function GuessContentType(url) {
     
+    if (url.searchParams.get("content-type"))
+    {
+        return url.searchParams.get("content-type")
+    }
+
     var extensions = Object.keys(mimeTypes)
     for (var index in extensions)
     {
@@ -59,6 +64,7 @@ function searchHtml(html, searchStrings)
         pre: false
         }
     })
+
     var searchString = parsedHtml.toString().toLowerCase()
 
     // TODO: make this a one-liner
@@ -153,6 +159,13 @@ export const tests = [
         name: "skippedHost", // Skip checking this item if the host is in the list of hosts to skip
         test: (input, options, response) => options.skippedHosts.includes(getURL(input).host),
         reason: (input, options, response) => input.reason = "Host on list to skip: " + getURL(input).host
+    },
+    { 
+        phase: 'pre',
+        skipUrl: true,
+        name: "skipQueryString", // Skip checking this item if there is a flag in the query string indicating to do it
+        test: (input, options, response) => getURL(input).searchParams.get("coroner") == "false",
+        reason: (input, options, response) => input.reason = "Path skipped by query string parameter"
     },
     {
         phase: 'post',
