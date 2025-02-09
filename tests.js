@@ -177,6 +177,14 @@ export const tests = [
     },
     {
         phase: 'post',
+        statusCodes: [403],
+        skipUrl: true,
+        name: 'skipCloudflare2', // Check if the response is CloudFlare blocking our request
+        test: (input, options, response, responseText) => responseText.slice(0, 500).trim().includes("Cloudflare"),
+        reason: (input, options, response) => "Unable to check - host protected by CloudFlare"
+    },
+    {
+        phase: 'post',
         name: 'badHTTPCode', // Check if the response had a bad HTTP response code indicating an error
         test: (input, options, response) => ![200, 301, 302, 303, 304, 307, 308].includes(response.status),
         reason: (input, options, response) => "Bad HTTP status: " + response.status
@@ -207,10 +215,10 @@ export const tests = [
         statusCodes: [200, 304],
         name: 'validHTML', // Check the response body looks like a valid HTML document
         test: (input, options, response, responseText) =>
-            !responseText.slice(0, 100).trim().toLowerCase().startsWith("<!doctype html") && 
-            !responseText.slice(0, 100).trim().toLowerCase().startsWith("<html") &&
-            !responseText.slice(0, 100).trim().toLowerCase().startsWith("<!--") &&
-            !responseText.slice(0, 100).trim().toLowerCase().startsWith("<?xml version=\"1.0\" encoding=\"utf-8\"?><!doctype html"),
+            !responseText.slice(0, 400).trim().toLowerCase().startsWith("<!doctype html") && 
+            !responseText.slice(0, 400).trim().toLowerCase().startsWith("<html") &&
+            !responseText.slice(0, 400).trim().toLowerCase().startsWith("<!--") &&
+            !responseText.slice(0, 400).trim().toLowerCase().startsWith("<?xml version=\"1.0\" encoding=\"utf-8\"?><!doctype html"),
         reason: (input, options, response, responseText) => "Does not look like a valid HTML file: first characters are '" + responseText.slice(0, 60).trim().toLowerCase() + "'"
     },
     {
